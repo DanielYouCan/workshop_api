@@ -142,9 +142,10 @@ module Observability
 
   # Middleware для сбора метрик запросов
   class MetricsMiddleware
-    def initialize(app, metrics:)
+    def initialize(app, metrics:, cache:)
       @app = app
       @metrics = metrics
+      @cache = cache
     end
 
     def call(env)
@@ -180,6 +181,7 @@ module Observability
 
       # Latency: response time
       @metrics.histogram('request_duration_ms', duration * 1000, tags: { method: method, path: path })
+      @metrics.gauge('cache_hit_rate', @cache.stats[:hit_rate])
 
       # Errors: error count
       if status >= 500
