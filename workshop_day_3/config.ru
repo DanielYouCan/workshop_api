@@ -33,7 +33,7 @@ use Observability::MetricsEndpoint, metrics: METRICS, path: '/metrics'
 use Observability::CorrelationMiddleware
 
 # Metrics collection
-use Observability::MetricsMiddleware, metrics: METRICS
+use Observability::MetricsMiddleware, metrics: METRICS, cache: CACHE
 
 # Request logging
 use Observability::RequestLoggerMiddleware, logger: LOGGER
