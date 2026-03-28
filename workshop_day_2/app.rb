@@ -70,7 +70,7 @@ class ApiGatewayApp < Sinatra::Base
     User.create!(
       email: 'business@example.com',
       password_hash: BCrypt::Password.create('password'),
-      scopes: ['read', 'write', 'admin'],
+      scopes: ['read', 'write', 'admin', 'read:orders'],
       tier: 'business'
     )
 
@@ -102,6 +102,10 @@ class ApiGatewayApp < Sinatra::Base
 
     def current_user
       @current_user ||= User.find(current_user_id) if current_user_id
+    end
+
+    def client
+      @current_client || current_user 
     end
 
     def json_params
@@ -296,7 +300,7 @@ class ApiGatewayApp < Sinatra::Base
 
     json(
       client_id: client.id,
-      client_name: client.name,
+      name: client.respond_to?(:name) ? client.name : client.email,
       tier: client.tier,
       api_keys: keys
     )
@@ -305,7 +309,7 @@ class ApiGatewayApp < Sinatra::Base
   ### Protected API Endpoints (с rate limiting) ###
 
   get '/api/orders' do
-    authenticate_api_key!
+    authenticate_api_key! unless request.env['HTTP_AUTHORIZATION']
     check_rate_limits!
 
     # Симуляция работы
@@ -319,16 +323,16 @@ class ApiGatewayApp < Sinatra::Base
 
     json(
       client: {
-        id: @current_client.id,
-        name: @current_client.name,
-        tier: @current_client.tier
+        id: client.id,
+        name: client.respond_to?(:name) ? client.name : client.email,
+        tier: client.tier
       },
       orders: orders
     )
   end
 
   post '/api/orders' do
-    authenticate_api_key!
+    authenticate_api_key! unless request.env['HTTP_AUTHORIZATION']
     check_rate_limits!
 
     order_data = json_params
@@ -353,7 +357,7 @@ class ApiGatewayApp < Sinatra::Base
 
   # Демо endpoint для тестирования разных тиров
   get '/api/demo/rate-limit-test' do
-    authenticate_api_key!
+    authenticate_api_key! unless request.env['HTTP_AUTHORIZATION']
     check_rate_limits!
 
     release_concurrent_slot!
